@@ -16,13 +16,14 @@ default = [ "static" ]
 static = []
 snappy = []
 lz4 = []
-zstd = []
+zstd = [ "zstd-sys" ]
 zlib = []
 bzip2 = []
 
 
 [dependencies]
 libc = "0.2"
+zstd-sys = { git = "https://github.com/bkchr/zstd-rs.git", branch = "bkchr-export-include-paths2", optional = true }
 
 [dev-dependencies]
 const-cstr = "0.3"

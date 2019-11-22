@@ -65,8 +65,15 @@ fn build_rocksdb() {
 
     if cfg!(feature = "zstd") {
         config.define("ZSTD", Some("1"));
-        config.include("zstd/lib/");
-        config.include("zstd/lib/dictBuilder/");
+
+        let include_paths =
+            env::var("DEP_ZSTD_INCLUDE").expect("`DEP_ZSTD_INCLUDE` is set by `zstd-sys`");
+
+        // Just include all of them
+        for path in include_paths.split(';') {
+            config.include(path);
+            config.include(format!("{}/dictBuilder/", path));
+        }
     }
 
     if cfg!(feature = "zlib") {
@@ -218,34 +225,6 @@ fn build_lz4() {
     compiler.compile("liblz4.a");
 }
 
-fn build_zstd() {
-    let mut compiler = cc::Build::new();
-
-    compiler.include("zstd/lib/");
-    compiler.include("zstd/lib/common");
-    compiler.include("zstd/lib/legacy");
-
-    let globs = &[
-        "zstd/lib/common/*.c",
-        "zstd/lib/compress/*.c",
-        "zstd/lib/decompress/*.c",
-        "zstd/lib/dictBuilder/*.c",
-        "zstd/lib/legacy/*.c",
-    ];
-
-    for pattern in globs {
-        for path in glob::glob(pattern).unwrap() {
-            let path = path.unwrap();
-            compiler.file(path);
-        }
-    }
-
-    compiler.opt_level(3);
-
-    compiler.define("ZSTD_LIB_DEPRECATED", Some("0"));
-    compiler.compile("libzstd.a");
-}
-
 fn build_zlib() {
     let mut compiler = cc::Build::new();
 
@@ -302,14 +281,12 @@ fn main() {
     println!("cargo:rerun-if-changed=rocksdb/");
     println!("cargo:rerun-if-changed=snappy/");
     println!("cargo:rerun-if-changed=lz4/");
-    println!("cargo:rerun-if-changed=zstd/");
     println!("cargo:rerun-if-changed=zlib/");
     println!("cargo:rerun-if-changed=bzip2/");
 
     fail_on_empty_directory("rocksdb");
     fail_on_empty_directory("snappy");
     fail_on_empty_directory("lz4");
-    fail_on_empty_directory("zstd");
     fail_on_empty_directory("zlib");
     fail_on_empty_directory("bzip2");
 
@@ -323,9 +300,6 @@ fn main() {
     }
     if cfg!(feature = "lz4") && !try_to_find_and_link_lib("LZ4") {
         build_lz4();
-    }
-    if cfg!(feature = "zstd") && !try_to_find_and_link_lib("ZSTD") {
-        build_zstd();
     }
     if cfg!(feature = "zlib") && !try_to_find_and_link_lib("ZLIB") {
         build_zlib();
