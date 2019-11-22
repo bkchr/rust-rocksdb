@@ -243,6 +243,11 @@ fn build_zstd() {
     compiler.opt_level(3);
 
     compiler.define("ZSTD_LIB_DEPRECATED", Some("0"));
+    #[cfg(unix)]
+    compiler.flag("-fvisibility=hidden");
+    compiler.define("ZSTDLIB_VISIBILITY", Some(""));
+    compiler.define("ZDICTLIB_VISIBILITY", Some(""));
+    compiler.define("ZSTDERRORLIB_VISIBILITY", Some(""));
     compiler.compile("libzstd.a");
 }
 
